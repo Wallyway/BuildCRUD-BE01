@@ -2,12 +2,18 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from typing import Optional
 
 app = FastAPI()
 
 
 class TaskCreate(BaseModel):
     title: str
+
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    done: Optional[bool] = None
 
 tasks = [
     {"id": 1, "title": "Buy groceries", "done": False},
@@ -60,3 +66,27 @@ def create_task(task: TaskCreate):
     }
     tasks.append(new_task)
     return new_task
+
+
+@app.put("/tasks/{task_id}")
+def update_task(task_id: int, update: TaskUpdate):
+    task = next((t for t in tasks if t["id"] == task_id), None)
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    if update.title is None and update.done is None:
+        raise HTTPException(status_code=400, detail="title and/or done is required")
+    if update.title is not None:
+        if not update.title.strip():
+            raise HTTPException(status_code=400, detail="title cannot be empty")
+        task["title"] = update.title
+    if update.done is not None:
+        task["done"] = update.done
+    return task
+
+
+@app.delete("/tasks/{task_id}", status_code=204)
+def delete_task(task_id: int):
+    task = next((t for t in tasks if t["id"] == task_id), None)
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    tasks.remove(task)
