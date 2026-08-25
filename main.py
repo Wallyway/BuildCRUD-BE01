@@ -4,7 +4,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 
-app = FastAPI()
+app = FastAPI(
+    title="Task API",
+    version="1.0",
+    description="A small in-memory CRUD API for managing tasks.",
+)
 
 
 class TaskCreate(BaseModel):
@@ -32,22 +36,22 @@ def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=400, content={"error": "Invalid request body"})
 
 
-@app.get("/")
+@app.get("/", summary="API info", description="Describes this API and its main endpoints.")
 def root():
     return {"name": "Task API", "version": "1.0", "endpoints": ["/tasks"]}
 
 
-@app.get("/health")
+@app.get("/health", summary="Health check", description="Reports whether the server is running.")
 def health():
     return {"status": "ok"}
 
 
-@app.get("/tasks")
+@app.get("/tasks", tags=["tasks"], summary="List tasks", description="Returns every task.")
 def list_tasks():
     return tasks
 
 
-@app.get("/tasks/{task_id}")
+@app.get("/tasks/{task_id}", tags=["tasks"], summary="Get a task", description="Returns a single task by id, or 404 if it does not exist.")
 def get_task(task_id: int):
     for task in tasks:
         if task["id"] == task_id:
@@ -55,7 +59,7 @@ def get_task(task_id: int):
     raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
 
 
-@app.post("/tasks", status_code=201)
+@app.post("/tasks", status_code=201, tags=["tasks"], summary="Create a task", description="Creates a task from a title. Rejects a missing or empty title with 400.")
 def create_task(task: TaskCreate):
     if not task.title.strip():
         raise HTTPException(status_code=400, detail="title is required")
@@ -68,7 +72,7 @@ def create_task(task: TaskCreate):
     return new_task
 
 
-@app.put("/tasks/{task_id}")
+@app.put("/tasks/{task_id}", tags=["tasks"], summary="Update a task", description="Replaces title and/or done for a task. 404 unknown id, 400 empty or invalid body.")
 def update_task(task_id: int, update: TaskUpdate):
     task = next((t for t in tasks if t["id"] == task_id), None)
     if task is None:
@@ -84,7 +88,7 @@ def update_task(task_id: int, update: TaskUpdate):
     return task
 
 
-@app.delete("/tasks/{task_id}", status_code=204)
+@app.delete("/tasks/{task_id}", status_code=204, tags=["tasks"], summary="Delete a task", description="Removes a task. 404 if the id does not exist.")
 def delete_task(task_id: int):
     task = next((t for t in tasks if t["id"] == task_id), None)
     if task is None:
