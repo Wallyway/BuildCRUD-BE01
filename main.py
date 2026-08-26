@@ -48,12 +48,6 @@ def row_to_task(row):
 
 init_db()
 
-tasks = [
-    {"id": 1, "title": "Buy groceries", "done": False},
-    {"id": 2, "title": "Write report", "done": False},
-    {"id": 3, "title": "Walk the dog", "done": True},
-]
-
 
 @app.exception_handler(HTTPException)
 def http_exception_handler(request: Request, exc: HTTPException):
@@ -100,23 +94,25 @@ def create_task(task: TaskCreate):
 
 @app.put("/tasks/{task_id}", tags=["tasks"], summary="Update a task", description="Replaces title and/or done for a task. 404 unknown id, 400 empty or invalid body.")
 def update_task(task_id: int, update: TaskUpdate):
-    task = next((t for t in tasks if t["id"] == task_id), None)
-    if task is None:
+    row = db.execute("SELECT id, title, done FROM tasks WHERE id = ?", (task_id,)).fetchone()
+    if row is None:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
     if update.title is None and update.done is None:
         raise HTTPException(status_code=400, detail="title and/or done is required")
+    title = row["title"]
     if update.title is not None:
         if not update.title.strip():
             raise HTTPException(status_code=400, detail="title cannot be empty")
-        task["title"] = update.title
-    if update.done is not None:
-        task["done"] = update.done
-    return task
+        title = update.title
+    done = row["done"] if update.done is None else update.done
+    db.execute("UPDATE tasks SET title = ?, done = ? WHERE id = ?", (title, int(done), task_id))
+    db.commit()
+    return {"id": task_id, "title": title, "done": bool(done)}
 
 
 @app.delete("/tasks/{task_id}", status_code=204, tags=["tasks"], summary="Delete a task", description="Removes a task. 404 if the id does not exist.")
 def delete_task(task_id: int):
-    task = next((t for t in tasks if t["id"] == task_id), None)
-    if task is None:
+    cursor = db.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    if cursor.rowcount == 0:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
-    tasks.remove(task)
+    db.commit()
