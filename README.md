@@ -1,6 +1,6 @@
 # Task API
 
-A small in-memory CRUD API for managing a to-do list, built with FastAPI.
+A small CRUD API for managing a to-do list, built with FastAPI and backed by SQLite.
 
 ## Install & run
 
@@ -10,6 +10,8 @@ uvicorn main:app --reload --port 8000
 ```
 
 Server runs at http://localhost:8000. Interactive docs at http://localhost:8000/docs.
+
+The database file and its table are created automatically on first run, no setup steps needed.
 
 ## Endpoints
 
@@ -37,6 +39,21 @@ content-type: application/json
 
 ![Swagger UI](docs/swagger.png)
 
-## Data persistence
+## Database
 
-Tasks live only in memory. Restarting the server resets the list back to the three seed tasks — anything created, updated, or deleted during a session is lost. This is expected: without a database, the process has nowhere else to keep the data.
+Tasks are stored in SQLite. SQLite was chosen because it needs no server or installation — the whole database is one file, which is ideal for a small project like this and for learning SQL directly.
+
+The database file lives at `tasks.db` in the project root. It is created automatically the first time the app runs, along with the `tasks` table, and it is ignored by git so a fresh clone always starts from the same seed data. On an empty table, three example tasks are inserted; after that, tasks created, updated, or deleted through the API persist across restarts.
+
+## Database viewer
+
+![DB Browser for SQLite](docs/database.png)
+
+Example query run against `tasks.db`:
+
+```
+sqlite> SELECT * FROM tasks WHERE done = 1;
+3|Walk the dog|1
+```
+
+More queries used to explore the database are in [docs/queries.sql](docs/queries.sql).
