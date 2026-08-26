@@ -93,13 +93,9 @@ def get_task(task_id: int):
 def create_task(task: TaskCreate):
     if not task.title.strip():
         raise HTTPException(status_code=400, detail="title is required")
-    new_task = {
-        "id": max((t["id"] for t in tasks), default=0) + 1,
-        "title": task.title,
-        "done": False,
-    }
-    tasks.append(new_task)
-    return new_task
+    cursor = db.execute("INSERT INTO tasks (title, done) VALUES (?, 0)", (task.title,))
+    db.commit()
+    return {"id": cursor.lastrowid, "title": task.title, "done": False}
 
 
 @app.put("/tasks/{task_id}", tags=["tasks"], summary="Update a task", description="Replaces title and/or done for a task. 404 unknown id, 400 empty or invalid body.")
