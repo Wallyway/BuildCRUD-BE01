@@ -3,12 +3,18 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
+import sqlite3
 
 app = FastAPI(
     title="Task API",
     version="1.0",
-    description="A small in-memory CRUD API for managing tasks.",
+    description="A small CRUD API for managing tasks, stored in SQLite.",
 )
+
+DB_PATH = "tasks.db"
+
+db = sqlite3.connect(DB_PATH, check_same_thread=False)
+db.row_factory = sqlite3.Row
 
 
 class TaskCreate(BaseModel):
@@ -18,6 +24,29 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     done: Optional[bool] = None
+
+
+def init_db():
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS tasks ("
+        "id INTEGER PRIMARY KEY, "
+        "title TEXT NOT NULL, "
+        "done INTEGER NOT NULL DEFAULT 0)"
+    )
+    count = db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+    if count == 0:
+        db.executemany(
+            "INSERT INTO tasks (title, done) VALUES (?, ?)",
+            [("Buy groceries", 0), ("Write report", 0), ("Walk the dog", 1)],
+        )
+    db.commit()
+
+
+def row_to_task(row):
+    return {"id": row["id"], "title": row["title"], "done": bool(row["done"])}
+
+
+init_db()
 
 tasks = [
     {"id": 1, "title": "Buy groceries", "done": False},
