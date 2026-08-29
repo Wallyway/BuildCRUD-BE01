@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from repo_sqlite import SqliteTaskRepository
+from service import TaskService
 
 DB_PATH = "tasks.db"
 
@@ -14,7 +15,7 @@ app = FastAPI(
     description="A small CRUD API for managing tasks, stored in SQLite.",
 )
 
-repository = SqliteTaskRepository(DB_PATH)
+service = TaskService(SqliteTaskRepository(DB_PATH))
 
 
 class TaskCreate(BaseModel):
@@ -48,39 +49,24 @@ def health():
 
 @app.get("/tasks", tags=["tasks"], summary="List tasks", description="Returns every task.")
 def list_tasks():
-    return repository.list_all()
+    return service.list_tasks()
 
 
 @app.get("/tasks/{task_id}", tags=["tasks"], summary="Get a task", description="Returns a single task by id, or 404 if it does not exist.")
 def get_task(task_id: int):
-    task = repository.get(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
-    return task
+    return service.get_task(task_id)
 
 
 @app.post("/tasks", status_code=201, tags=["tasks"], summary="Create a task", description="Creates a task from a title. Rejects a missing or empty title with 400.")
 def create_task(task: TaskCreate):
-    if not task.title.strip():
-        raise HTTPException(status_code=400, detail="title is required")
-    return repository.create(task.title)
+    return service.create_task(task.title)
 
 
 @app.put("/tasks/{task_id}", tags=["tasks"], summary="Update a task", description="Replaces title and/or done for a task. 404 unknown id, 400 empty or invalid body.")
 def update_task(task_id: int, update: TaskUpdate):
-    task = repository.get(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
-    if update.title is None and update.done is None:
-        raise HTTPException(status_code=400, detail="title and/or done is required")
-    if update.title is not None and not update.title.strip():
-        raise HTTPException(status_code=400, detail="title cannot be empty")
-    title = task["title"] if update.title is None else update.title
-    done = task["done"] if update.done is None else update.done
-    return repository.update(task_id, title, done)
+    return service.update_task(task_id, update.title, update.done)
 
 
 @app.delete("/tasks/{task_id}", status_code=204, tags=["tasks"], summary="Delete a task", description="Removes a task. 404 if the id does not exist.")
 def delete_task(task_id: int):
-    if not repository.delete(task_id):
-        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    service.delete_task(task_id)
