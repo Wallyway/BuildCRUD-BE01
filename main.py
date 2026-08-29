@@ -2,11 +2,10 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+import config
 from repo_sqlite import SqliteTaskRepository
 from routes import router
 from service import TaskService
-
-DB_PATH = "tasks.db"
 
 app = FastAPI(
     title="Task API",
@@ -14,7 +13,7 @@ app = FastAPI(
     description="A small CRUD API for managing tasks, stored in SQLite.",
 )
 
-app.state.service = TaskService(SqliteTaskRepository(DB_PATH))
+app.state.service = TaskService(SqliteTaskRepository(config.SQLITE_PATH))
 
 
 @app.exception_handler(HTTPException)
