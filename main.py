@@ -1,17 +1,28 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 import config
+from auth_service import AuthService
 from repo_postgres import PostgresTaskRepository
 from repo_sqlite import SqliteTaskRepository
 from routes import router
 from service import TaskService
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Server running and connected to Supabase")
+    yield
+
+
 app = FastAPI(
     title="Task API",
-    version="1.0",
-    description="A small CRUD API for managing tasks, stored in PostgreSQL or SQLite.",
+    version="2.0",
+    description="A CRUD API for managing tasks, with Supabase authentication protecting private routes.",
+    lifespan=lifespan,
 )
 
 
@@ -22,6 +33,7 @@ def build_repository():
 
 
 app.state.service = TaskService(build_repository())
+app.state.auth = AuthService(config.SUPABASE_URL, config.SUPABASE_KEY)
 
 
 @app.exception_handler(HTTPException)
