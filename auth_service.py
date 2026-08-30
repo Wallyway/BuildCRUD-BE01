@@ -42,6 +42,12 @@ class AuthService:
             raise HTTPException(status_code=401, detail="Invalid or expired token")
         return response.user
 
+    def sign_out(self, token: str):
+        try:
+            self.client.auth.admin.sign_out(token)
+        except AuthError:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+
     @staticmethod
     def _require_credentials(email: Optional[str], password: Optional[str]):
         if not email or not password:
