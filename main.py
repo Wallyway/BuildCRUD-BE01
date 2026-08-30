@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 import config
+from auth_routes import router as auth_router
 from auth_service import AuthService
 from repo_postgres import PostgresTaskRepository
 from repo_sqlite import SqliteTaskRepository
@@ -46,4 +47,5 @@ def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=400, content={"error": "Invalid request body"})
 
 
+app.include_router(auth_router)
 app.include_router(router)
