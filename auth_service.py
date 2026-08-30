@@ -33,6 +33,15 @@ class AuthService:
             "user": response.user,
         }
 
+    def get_user(self, token: str):
+        try:
+            response = self.client.auth.get_user(token)
+        except AuthError:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        if response is None or response.user is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return response.user
+
     @staticmethod
     def _require_credentials(email: Optional[str], password: Optional[str]):
         if not email or not password:

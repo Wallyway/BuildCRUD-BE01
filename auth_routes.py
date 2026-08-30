@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 
+from auth_dependency import get_auth
 from auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -10,10 +11,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 class Credentials(BaseModel):
     email: Optional[str] = None
     password: Optional[str] = None
-
-
-def get_auth(request: Request) -> AuthService:
-    return request.app.state.auth
 
 
 @router.post("/signup", status_code=201, summary="Sign up", description="Registers a new account in Supabase. Rejects a missing email or password with 400.")
