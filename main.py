@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 import config
+from access_routes import router as access_router
 from auth_routes import router as auth_router
 from auth_service import AuthService
 from repo_postgres import PostgresTaskRepository
@@ -48,4 +49,5 @@ def validation_exception_handler(request: Request, exc: RequestValidationError):
 
 
 app.include_router(auth_router)
+app.include_router(access_router)
 app.include_router(router)
