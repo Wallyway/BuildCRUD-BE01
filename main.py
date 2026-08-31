@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 import config
@@ -20,10 +21,18 @@ async def lifespan(app: FastAPI):
     yield
 
 
+tags_metadata = [
+    {"name": "auth", "description": "Sign up, log in and log out through Supabase."},
+    {"name": "public", "description": "Open to anyone, no token needed."},
+    {"name": "protected", "description": "Require an access token. Click Authorize and paste the one returned by /auth/login."},
+    {"name": "tasks", "description": "The CRUD API from the previous assignment."},
+]
+
 app = FastAPI(
     title="Task API",
     version="2.0",
     description="A CRUD API for managing tasks, with Supabase authentication protecting private routes.",
+    openapi_tags=tags_metadata,
     lifespan=lifespan,
 )
 
@@ -51,3 +60,23 @@ def validation_exception_handler(request: Request, exc: RequestValidationError):
 app.include_router(auth_router)
 app.include_router(access_router)
 app.include_router(router)
+
+
+def build_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        tags=tags_metadata,
+        routes=app.routes,
+    )
+    for operations in schema["paths"].values():
+        for operation in operations.values():
+            operation["responses"].pop("422", None)
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = build_openapi
